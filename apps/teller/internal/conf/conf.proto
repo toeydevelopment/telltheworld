@@ -1,0 +1,68 @@
+syntax = "proto3";
+package kratos.api;
+
+option go_package = "github.com/toeydevelopment/telltheworld/apps/teller/internal/conf;conf";
+
+import "google/protobuf/duration.proto";
+
+message Bootstrap {
+  Server server = 1;
+  Data data = 2;
+  PubSubConfig pubsub = 3;
+}
+
+message Server {
+  message HTTP {
+    string                   network = 1;
+    string                   addr    = 2;
+    google.protobuf.Duration timeout = 3;
+  }
+  message GRPC {
+    string                   network = 1;
+    string                   addr    = 2;
+    google.protobuf.Duration timeout = 3;
+  }
+  HTTP http = 1;
+  GRPC grpc = 2;
+}
+
+
+message Data {
+  message Database {
+    string host = 1;
+    string port = 2;
+    string username = 3;
+    string password = 4;
+    string min_pool = 5;
+    string max_pool = 6;
+    string db = 7;
+    string enable_tracing = 8;
+  }
+
+  message Google {
+    string project_id = 1;
+    string firebase_sa = 2;
+    string map_api_key = 3;
+  }
+
+  message EmailSender {
+    string host = 1;
+    string port = 2;
+    string username = 3;
+    string password = 4;
+    string from = 5;
+  }
+
+  Database database = 1;
+  Google google = 2;
+  EmailSender email_sender = 3;
+}
+
+message PubSubConfig {
+  string type = 1; // kafka, redis, memory, nats
+  string brokers = 2; // For Kafka: comma-separated list of brokers
+  string redis_url = 3; // For Redis: redis connection URL
+  string nats_url = 4; // For NATS: nats connection URL
+  string consumer_group = 5; // Consumer group name
+  map<string, string> config = 6; // Additional configuration
+}

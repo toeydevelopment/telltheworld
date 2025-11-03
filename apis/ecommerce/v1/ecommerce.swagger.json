@@ -1,0 +1,343 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "v1/ecommerce.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "EcommerceService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/api/v1/events/chat-message": {
+      "post": {
+        "summary": "Simulate chat message event",
+        "operationId": "EcommerceService_SendChatMessage",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1SendChatMessageResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1SendChatMessageRequest"
+            }
+          }
+        ],
+        "tags": [
+          "EcommerceService"
+        ]
+      }
+    },
+    "/api/v1/events/payment-reminder": {
+      "post": {
+        "summary": "Simulate payment reminder",
+        "operationId": "EcommerceService_SendPaymentReminder",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1SendPaymentReminderResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1SendPaymentReminderRequest"
+            }
+          }
+        ],
+        "tags": [
+          "EcommerceService"
+        ]
+      }
+    },
+    "/api/v1/events/purchase": {
+      "post": {
+        "summary": "Simulate purchase event",
+        "operationId": "EcommerceService_TriggerPurchase",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1TriggerPurchaseResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1TriggerPurchaseRequest"
+            }
+          }
+        ],
+        "tags": [
+          "EcommerceService"
+        ]
+      }
+    },
+    "/api/v1/events/shipping-update": {
+      "post": {
+        "summary": "Simulate shipping update",
+        "operationId": "EcommerceService_SendShippingUpdate",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1SendShippingUpdateResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1SendShippingUpdateRequest"
+            }
+          }
+        ],
+        "tags": [
+          "EcommerceService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "v1PurchaseItem": {
+      "type": "object",
+      "properties": {
+        "product_id": {
+          "type": "string"
+        },
+        "product_name": {
+          "type": "string"
+        },
+        "quantity": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "price": {
+          "type": "number",
+          "format": "double"
+        }
+      }
+    },
+    "v1SendChatMessageRequest": {
+      "type": "object",
+      "properties": {
+        "buyer_id": {
+          "type": "string"
+        },
+        "seller_id": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "conversation_id": {
+          "type": "string"
+        }
+      },
+      "title": "Chat Message Event"
+    },
+    "v1SendChatMessageResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "notification_id": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1SendPaymentReminderRequest": {
+      "type": "object",
+      "properties": {
+        "buyer_id": {
+          "type": "string"
+        },
+        "order_id": {
+          "type": "string"
+        },
+        "amount_due": {
+          "type": "number",
+          "format": "double"
+        },
+        "due_date": {
+          "type": "string",
+          "title": "ISO 8601 format"
+        }
+      },
+      "title": "Payment Reminder Event"
+    },
+    "v1SendPaymentReminderResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "notification_id": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1SendShippingUpdateRequest": {
+      "type": "object",
+      "properties": {
+        "buyer_id": {
+          "type": "string"
+        },
+        "order_id": {
+          "type": "string"
+        },
+        "tracking_number": {
+          "type": "string"
+        },
+        "carrier": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "title": "\"shipped\", \"in_transit\", \"delivered\""
+        }
+      },
+      "title": "Shipping Update Event"
+    },
+    "v1SendShippingUpdateResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "notification_id": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "v1TriggerPurchaseRequest": {
+      "type": "object",
+      "properties": {
+        "buyer_id": {
+          "type": "string"
+        },
+        "seller_id": {
+          "type": "string"
+        },
+        "order_id": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number",
+          "format": "double"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1PurchaseItem"
+          }
+        }
+      },
+      "title": "Purchase Event"
+    },
+    "v1TriggerPurchaseResponse": {
+      "type": "object",
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "notification_id": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,40 @@
+server:
+  http:
+    network: tcp
+    addr: 0.0.0.0:8000
+    timeout: 1s
+  grpc:
+    network: tcp
+    addr: 0.0.0.0:9000
+    timeout: 1s
+
+data:
+  database:
+    host: postgres
+    port: "5432"
+    username: postgres
+    password: password
+    db: telltheworld
+    min_pool: "5"
+    max_pool: "20"
+    enable_tracing: "false"
+  google:
+    project_id: ""
+    firebase_sa: ""
+    map_api_key: ""
+  email_sender:
+    host: smtp.gmail.com
+    port: "587"
+    username: ""
+    password: ""
+    from: ""
+
+pubsub:
+  type: nats    # Options: kafka, redis, memory, nats
+  brokers: ""   # For Kafka: comma-separated list of brokers
+  redis_url: "" # For Redis: redis connection URL
+  nats_url: "nats://nats:4222" # For NATS: nats connection URL
+  consumer_group: "teller-service"
+  config:
+    stream_name: "TELLER" # NATS JetStream name
+    # Additional configuration can be added here

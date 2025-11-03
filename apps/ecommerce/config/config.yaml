@@ -1,0 +1,22 @@
+server:
+  http:
+    network: tcp
+    addr: 0.0.0.0:8080
+    timeout: 1s
+  grpc:
+    network: tcp
+    addr: 0.0.0.0:9090
+    timeout: 1s
+
+data:
+  database:
+    driver: mysql
+    source: root:root@tcp(127.0.0.1:3306)/test
+  redis:
+    addr: 127.0.0.1:6379
+    read_timeout: 0.2s
+    write_timeout: 0.2s
+
+teller_client:
+  endpoint: teller-server:9000  # Teller service gRPC endpoint
+  timeout: 5s

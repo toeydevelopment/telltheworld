@@ -1,0 +1,39 @@
+server:
+  http:
+    network: tcp
+    addr: ${SERVER_HTTP_ADDR:0.0.0.0:8000}
+    timeout: 1s
+  grpc:
+    network: tcp
+    addr: ${SERVER_GRPC_ADDR:0.0.0.0:9000}
+    timeout: 1s
+
+data:
+  database:
+    host: ${DATA_DATABASE_HOST:postgres}
+    port: ${DATA_DATABASE_PORT:5432}
+    username: ${DATA_DATABASE_USERNAME:postgres}
+    password: ${DATA_DATABASE_PASSWORD:password}
+    db: ${DATA_DATABASE_DB:telltheworld}
+    min_pool: ${DATA_DATABASE_MIN_POOL:5}
+    max_pool: ${DATA_DATABASE_MAX_POOL:20}
+    enable_tracing: ${DATA_DATABASE_ENABLE_TRACING:false}
+  google:
+    project_id: ${GOOGLE_PROJECT_ID:}
+    firebase_sa: ${FIREBASE_SERVICE_ACCOUNT:}
+    map_api_key: ${GOOGLE_MAP_API_KEY:}
+  email_sender:
+    host: ${EMAIL_SMTP_HOST:smtp.gmail.com}
+    port: ${EMAIL_SMTP_PORT:587}
+    username: ${EMAIL_SMTP_USERNAME:}
+    password: ${EMAIL_SMTP_PASSWORD:}
+    from: ${EMAIL_FROM:noreply@example.com}
+
+pubsub:
+  type: ${PUBSUB_TYPE:memory}  # Options: kafka, redis, memory
+  brokers: ${PUBSUB_BROKERS:}  # For Kafka: comma-separated list of brokers
+  redis_url: ${PUBSUB_REDIS_URL:} # For Redis: redis connection URL
+  consumer_group: ${PUBSUB_CONSUMER_GROUP:teller-workers}
+  config:
+    auto_offset_reset: earliest
+    enable_auto_commit: true

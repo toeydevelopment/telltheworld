@@ -1,0 +1,10 @@
+go 1.25
+
+use (
+	./apis/ecommerce
+	./apis/teller
+	./apps/ecommerce
+	./apps/teller
+	./internal
+	./pkg
+)

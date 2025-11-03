@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+import "google/api/annotations.proto";
+
+package pkg.healthcheck;
+
+option go_package = "github.com/toeydevelopment/telltheworld/pkg/healthcheck;healthcheck";
+
+service HealthCheckService {
+  rpc PingCheck(PingCheckRequest) returns (PingCheckReply) {
+    option (google.api.http) = {
+      get : "/ping"
+    };
+  }
+  rpc HealthzCheck(HealthzCheckRequest) returns (HealthzCheckReply) {
+    option (google.api.http) = {
+      get : "/healthz"
+    };
+  }
+}
+message PingCheckRequest {}
+message PingCheckReply { bool success = 1; }
+
+message HealthzCheckRequest {}
+message HealthzCheckReply { bool success = 1; }

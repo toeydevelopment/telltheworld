@@ -1,0 +1,169 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "v1/notification.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "NotificationService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {},
+  "definitions": {
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "v1BulkSendToUserReply": {
+      "type": "object",
+      "properties": {
+        "replies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1WillPushReply"
+          }
+        }
+      }
+    },
+    "v1ChannelDestination": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "$ref": "#/definitions/v1NotificationChannel"
+        },
+        "destination": {
+          "type": "string"
+        }
+      }
+    },
+    "v1GetNotificationStatusReply": {
+      "type": "object",
+      "properties": {
+        "statuses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1GetNotificationStatusReplyStatusPerChannel"
+          }
+        }
+      }
+    },
+    "v1GetNotificationStatusReplyStatusPerChannel": {
+      "type": "object",
+      "properties": {
+        "channel": {
+          "$ref": "#/definitions/v1NotificationChannel"
+        },
+        "status": {
+          "$ref": "#/definitions/v1NotificationStatus"
+        },
+        "fail_reason": {
+          "type": "string"
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "v1Notification": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "body": {
+          "type": "string"
+        },
+        "ref_id": {
+          "type": "string"
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1NotificationChannel"
+          }
+        },
+        "schedule_at": {
+          "type": "string",
+          "format": "date-time",
+          "title": "google.protobuf.Timestamp created_at = 4 [json_name = \"created_at\"];\ngoogle.protobuf.Timestamp send_at = 5 [json_name = \"send_at\"];"
+        }
+      }
+    },
+    "v1NotificationChannel": {
+      "type": "string",
+      "enum": [
+        "NotificationChannel_Unknown",
+        "NotificationChannel_Push",
+        "NotificationChannel_Email"
+      ],
+      "default": "NotificationChannel_Unknown"
+    },
+    "v1NotificationStatus": {
+      "type": "string",
+      "enum": [
+        "NotificationStatus_Unknown",
+        "NotificationStatus_Pending",
+        "NotificationStatus_Sent",
+        "NotificationStatus_Failed"
+      ],
+      "default": "NotificationStatus_Unknown"
+    },
+    "v1SendToUserRequest": {
+      "type": "object",
+      "properties": {
+        "notification": {
+          "$ref": "#/definitions/v1Notification"
+        },
+        "destinations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1ChannelDestination"
+          }
+        }
+      }
+    },
+    "v1WillPushReply": {
+      "type": "object",
+      "properties": {
+        "notification_id": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

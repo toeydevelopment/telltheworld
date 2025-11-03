@@ -1,0 +1,311 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: teller-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-telltheworld}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_MAX_CONNECTIONS: 200
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./deploy/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-telltheworld}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - teller-network
+
+  # NATS (Event Broker)
+  nats:
+    image: nats:2.10-alpine
+    container_name: teller-nats
+    restart: unless-stopped
+    command: ["-js", "-sd", "/data", "--name", "teller-nats", "--http_port", "8222"]
+    ports:
+      - "${NATS_PORT:-4222}:4222"     # Client connections
+      - "${NATS_CLUSTER_PORT:-6222}:6222"  # Cluster connections
+      - "${NATS_HTTP_PORT:-8222}:8222"     # HTTP monitoring
+    volumes:
+      - nats_data:/data
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8222/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - teller-network
+
+  # Redis (for future Pub/Sub)
+  redis:
+    image: redis:7-alpine
+    container_name: teller-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - teller-network
+    profiles:
+      - redis
+
+  # Kafka (optional, for production pub/sub)
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: teller-zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_logs:/var/lib/zookeeper/log
+    networks:
+      - teller-network
+    profiles:
+      - kafka
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: teller-kafka
+    restart: unless-stopped
+    depends_on:
+      - zookeeper
+    ports:
+      - "${KAFKA_PORT:-9092}:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - teller-network
+    profiles:
+      - kafka
+
+  # Notification Server (API)
+  teller-server:
+    build:
+      context: .
+      dockerfile: ./apps/teller/Dockerfile.server
+    container_name: teller-server
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+    environment:
+      # Server config
+      SERVER_HTTP_ADDR: 0.0.0.0:8000
+      SERVER_GRPC_ADDR: 0.0.0.0:9000
+
+      # Database config
+      DATA_DATABASE_HOST: postgres
+      DATA_DATABASE_PORT: 5432
+      DATA_DATABASE_USERNAME: ${POSTGRES_USER:-postgres}
+      DATA_DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      DATA_DATABASE_DB: ${POSTGRES_DB:-telltheworld}
+      DATA_DATABASE_MIN_POOL: 5
+      DATA_DATABASE_MAX_POOL: 20
+
+      # PubSub config
+      PUBSUB_TYPE: ${PUBSUB_TYPE:-nats}
+      PUBSUB_NATS_URL: nats://nats:4222
+      PUBSUB_REDIS_URL: redis://redis:6379
+      PUBSUB_BROKERS: kafka:29092
+      PUBSUB_CONSUMER_GROUP: teller-workers
+
+      # Auto migrate database
+      AUTO_MIGRATE: "false"
+    ports:
+      - "${SERVER_HTTP_PORT:-8000}:8000"
+      - "${SERVER_GRPC_PORT:-9000}:9000"
+    volumes:
+      - ./apps/teller/config:/app/config:ro
+    networks:
+      - teller-network
+
+  # Notification Worker (Consumer) - Instance 1
+  teller-worker-1:
+    build:
+      context: .
+      dockerfile: ./apps/teller/Dockerfile.worker
+    container_name: teller-worker-1
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+      teller-server:
+        condition: service_started
+    environment:
+      # Database config
+      DATA_DATABASE_HOST: postgres
+      DATA_DATABASE_PORT: 5432
+      DATA_DATABASE_USERNAME: ${POSTGRES_USER:-postgres}
+      DATA_DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      DATA_DATABASE_DB: ${POSTGRES_DB:-telltheworld}
+      DATA_DATABASE_MIN_POOL: 2
+      DATA_DATABASE_MAX_POOL: 5
+
+      # PubSub config
+      PUBSUB_TYPE: ${PUBSUB_TYPE:-nats}
+      PUBSUB_NATS_URL: nats://nats:4222
+      PUBSUB_REDIS_URL: redis://redis:6379
+      PUBSUB_BROKERS: kafka:29092
+      PUBSUB_CONSUMER_GROUP: teller-workers
+    volumes:
+      - ./apps/teller/config:/app/config:ro
+    networks:
+      - teller-network
+
+  # Notification Worker (Consumer) - Instance 2
+  teller-worker-2:
+    build:
+      context: .
+      dockerfile: ./apps/teller/Dockerfile.worker
+    container_name: teller-worker-2
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+      teller-server:
+        condition: service_started
+    environment:
+      # Database config
+      DATA_DATABASE_HOST: postgres
+      DATA_DATABASE_PORT: 5432
+      DATA_DATABASE_USERNAME: ${POSTGRES_USER:-postgres}
+      DATA_DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      DATA_DATABASE_DB: ${POSTGRES_DB:-telltheworld}
+      DATA_DATABASE_MIN_POOL: 2
+      DATA_DATABASE_MAX_POOL: 5
+
+      # PubSub config
+      PUBSUB_TYPE: ${PUBSUB_TYPE:-nats}
+      PUBSUB_NATS_URL: nats://nats:4222
+      PUBSUB_REDIS_URL: redis://redis:6379
+      PUBSUB_BROKERS: kafka:29092
+      PUBSUB_CONSUMER_GROUP: teller-workers
+    volumes:
+      - ./apps/teller/config:/app/config:ro
+    networks:
+      - teller-network
+
+  # Ecommerce Service
+  ecommerce-server:
+    build:
+      context: .
+      dockerfile: ./apps/ecommerce/Dockerfile
+    container_name: ecommerce-server
+    restart: unless-stopped
+    depends_on:
+      teller-server:
+        condition: service_started
+    environment:
+      # Server config
+      SERVER_HTTP_ADDR: 0.0.0.0:8080
+      SERVER_GRPC_ADDR: 0.0.0.0:9090
+
+      # Teller client config
+      TELLER_CLIENT_ENDPOINT: teller-server:9000
+      TELLER_CLIENT_TIMEOUT: 5s
+    ports:
+      - "${ECOMMERCE_HTTP_PORT:-8080}:8080"
+      - "${ECOMMERCE_GRPC_PORT:-9090}:9090"
+    volumes:
+      - ./apps/ecommerce/config:/app/config:ro
+    networks:
+      - teller-network
+
+  # Notification Worker (Consumer) - Instance 3
+  teller-worker-3:
+    build:
+      context: .
+      dockerfile: ./apps/teller/Dockerfile.worker
+    container_name: teller-worker-3
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_healthy
+      teller-server:
+        condition: service_started
+    environment:
+      # Database config
+      DATA_DATABASE_HOST: postgres
+      DATA_DATABASE_PORT: 5432
+      DATA_DATABASE_USERNAME: ${POSTGRES_USER:-postgres}
+      DATA_DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      DATA_DATABASE_DB: ${POSTGRES_DB:-telltheworld}
+      DATA_DATABASE_MIN_POOL: 2
+      DATA_DATABASE_MAX_POOL: 5
+
+      # PubSub config
+      PUBSUB_TYPE: ${PUBSUB_TYPE:-nats}
+      PUBSUB_NATS_URL: nats://nats:4222
+      PUBSUB_REDIS_URL: redis://redis:6379
+      PUBSUB_BROKERS: kafka:29092
+      PUBSUB_CONSUMER_GROUP: teller-workers
+    volumes:
+      - ./apps/teller/config:/app/config:ro
+    networks:
+      - teller-network
+    profiles:
+      - scale
+
+  # pgAdmin for database management (optional)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: teller-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - teller-network
+    profiles:
+      - tools
+
+networks:
+  teller-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  nats_data:
+  redis_data:
+  kafka_data:
+  zookeeper_data:
+  zookeeper_logs:
+  pgadmin_data:

@@ -1,0 +1,121 @@
+syntax = "proto3";
+
+package ecommerce.v1;
+
+import "google/api/annotations.proto";
+import "validate/validate.proto";
+
+option go_package = "github.com/toeydevelopment/telltheworld/apis/ecommerce/v1;v1";
+option java_multiple_files = true;
+option java_package = "api.ecommerce.v1";
+
+service EcommerceService {
+  // Simulate chat message event
+  rpc SendChatMessage (SendChatMessageRequest) returns (SendChatMessageResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/events/chat-message"
+      body: "*"
+    };
+  }
+
+  // Simulate purchase event
+  rpc TriggerPurchase (TriggerPurchaseRequest) returns (TriggerPurchaseResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/events/purchase"
+      body: "*"
+    };
+  }
+
+  // Simulate payment reminder
+  rpc SendPaymentReminder (SendPaymentReminderRequest) returns (SendPaymentReminderResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/events/payment-reminder"
+      body: "*"
+    };
+  }
+
+  // Simulate shipping update
+  rpc SendShippingUpdate (SendShippingUpdateRequest) returns (SendShippingUpdateResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/events/shipping-update"
+      body: "*"
+    };
+  }
+}
+
+enum EventType {
+  CHAT_MESSAGE = 0;
+  PURCHASE = 1;
+  PAYMENT_REMINDER = 2;
+  SHIPPING_UPDATE = 3;
+}
+
+enum UserType {
+  BUYER = 0;
+  SELLER = 1;
+}
+
+// Chat Message Event
+message SendChatMessageRequest {
+  string buyer_id = 1 [(validate.rules).string = {min_len: 1}];
+  string seller_id = 2 [(validate.rules).string = {min_len: 1}];
+  string message = 3 [(validate.rules).string = {min_len: 1}];
+  string conversation_id = 4;
+}
+
+message SendChatMessageResponse {
+  bool success = 1;
+  string notification_id = 2;
+  string message = 3;
+}
+
+// Purchase Event
+message TriggerPurchaseRequest {
+  string buyer_id = 1 [(validate.rules).string = {min_len: 1}];
+  string seller_id = 2 [(validate.rules).string = {min_len: 1}];
+  string order_id = 3 [(validate.rules).string = {min_len: 1}];
+  double amount = 4 [(validate.rules).double = {gt: 0}];
+  repeated PurchaseItem items = 5;
+}
+
+message PurchaseItem {
+  string product_id = 1;
+  string product_name = 2;
+  int32 quantity = 3;
+  double price = 4;
+}
+
+message TriggerPurchaseResponse {
+  bool success = 1;
+  string notification_id = 2;
+  string message = 3;
+}
+
+// Payment Reminder Event
+message SendPaymentReminderRequest {
+  string buyer_id = 1 [(validate.rules).string = {min_len: 1}];
+  string order_id = 2 [(validate.rules).string = {min_len: 1}];
+  double amount_due = 3 [(validate.rules).double = {gt: 0}];
+  string due_date = 4; // ISO 8601 format
+}
+
+message SendPaymentReminderResponse {
+  bool success = 1;
+  string notification_id = 2;
+  string message = 3;
+}
+
+// Shipping Update Event
+message SendShippingUpdateRequest {
+  string buyer_id = 1 [(validate.rules).string = {min_len: 1}];
+  string order_id = 2 [(validate.rules).string = {min_len: 1}];
+  string tracking_number = 3;
+  string carrier = 4;
+  string status = 5; // "shipped", "in_transit", "delivered"
+}
+
+message SendShippingUpdateResponse {
+  bool success = 1;
+  string notification_id = 2;
+  string message = 3;
+}

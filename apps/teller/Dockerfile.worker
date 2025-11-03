@@ -1,0 +1,54 @@
+# Build stage
+FROM golang:1.25-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache git make
+
+# Set working directory
+WORKDIR /app
+
+# Copy go work files
+COPY go.work go.work.sum ./
+
+# Copy all modules
+COPY apps/teller/go.mod apps/teller/go.sum ./apps/teller/
+COPY pkg/go.mod ./pkg/
+COPY internal/go.mod ./internal/
+COPY apis/teller/go.mod ./apis/teller/
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the worker
+WORKDIR /app/apps/teller
+RUN go build -o /bin/worker ./cmd/worker
+
+# Runtime stage
+FROM alpine:latest
+
+# Install runtime dependencies
+RUN apk add --no-cache ca-certificates tzdata
+
+# Create non-root user
+RUN adduser -D -u 1000 teller
+
+# Set working directory
+WORKDIR /app
+
+# Copy binary from builder
+COPY --from=builder /bin/worker /app/worker
+
+# Copy config file
+COPY --from=builder /app/apps/teller/config /app/config
+
+# Change ownership
+RUN chown -R teller:teller /app
+
+# Switch to non-root user
+USER teller
+
+# Run the worker
+CMD ["/app/worker", "-conf", "/app/config/config.yaml"]
